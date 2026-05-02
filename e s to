@@ -1,0 +1,178 @@
+import java.util.*;
+
+// Clase Tripulante implementa Comparable para ordenamiento natural
+class Tripulante implements Comparable<Tripulante> {
+    private int codigoUnico;
+    private int nivelEnergia;
+    private int nivelCombate;
+    private String estado;
+    
+    // Constructor
+    public Tripulante(int codigoUnico, int nivelEnergia, int nivelCombate, String estado) {
+        this.codigoUnico = codigoUnico;
+        this.nivelEnergia = nivelEnergia;
+        this.nivelCombate = nivelCombate;
+        this.estado = estado;
+    }
+    
+    // Getters
+    public int getCodigoUnico() { return codigoUnico; }
+    public int getNivelEnergia() { return nivelEnergia; }
+    public int getNivelCombate() { return nivelCombate; }
+    public String getEstado() { return estado; }
+    
+    // Setters
+    public void setEstado(String estado) { this.estado = estado; }
+    
+    // Método compareTo: orden por energía (mayor primero), luego nivel combate (mayor), luego código (menor)
+    @Override
+    public int compareTo(Tripulante otro) {
+        // Primero por energía (mayor a menor)
+        if (this.nivelEnergia != otro.nivelEnergia) {
+            return Integer.compare(otro.nivelEnergia, this.nivelEnergia);
+        }
+        // Segundo por nivel de combate (mayor a menor)
+        if (this.nivelCombate != otro.nivelCombate) {
+            return Integer.compare(otro.nivelCombate, this.nivelCombate);
+        }
+        // Tercero por código único (menor a mayor)
+        return Integer.compare(this.codigoUnico, otro.codigoUnico);
+    }
+    
+    @Override
+    public String toString() {
+        return "Tripulante{codigo=" + codigoUnico + ", energia=" + nivelEnergia + 
+               ", combate=" + nivelCombate + ", estado=" + estado + "}";
+    }
+}
+
+// Clase SistemaGestion
+class SistemaGestion {
+    private List<Tripulante> tripulantes;
+    
+    public SistemaGestion() {
+        tripulantes = new ArrayList<>();
+    }
+    
+    public void agregarTripulante(Tripulante t) {
+        tripulantes.add(t);
+    }
+    
+    // Método 1: procesarTripulante - usa compareTo y ordenamiento manual (inserción)
+    public List<Tripulante> procesarTripulante() {
+        List<Tripulante> disponibles = new ArrayList<>();
+        
+        // Filtrar disponibles
+        for (Tripulante t : tripulantes) {
+            if (t.getEstado().equals("disponible")) {
+                disponibles.add(t);
+            }
+        }
+        
+        // Ordenamiento manual por inserción usando compareTo
+        for (int i = 1; i < disponibles.size(); i++) {
+            Tripulante clave = disponibles.get(i);
+            int j = i - 1;
+            
+            while (j >= 0 && disponibles.get(j).compareTo(clave) > 0) {
+                disponibles.set(j + 1, disponibles.get(j));
+                j--;
+            }
+            disponibles.set(j + 1, clave);
+        }
+        
+        return disponibles;
+    }
+    
+    // Método 2: armarFormacion
+    public List<Tripulante> armarFormacion(int minNivel, int minEnergia, int maxCantidad) {
+        List<Tripulante> formacion = new ArrayList<>();
+        int contador = 0;
+        
+        // Paso 1: obtener tripulantes ordenados (solo disponibles)
+        List<Tripulante> ordenados = procesarTripulante();
+        
+        // Paso 2: seleccionar disponibles que cumplen mínimos
+        for (int i = 0; i < ordenados.size() && contador < maxCantidad; i++) {
+            Tripulante t = ordenados.get(i);
+            
+            if (t.getNivelEnergia() >= minEnergia && t.getNivelCombate() >= minNivel) {
+                t.setEstado("en misión");
+                formacion.add(t);
+                contador++;
+            }
+        }
+        
+        // Paso 3: si falta, tomar de "en recuperación" con más energía
+        if (contador < maxCantidad) {
+            List<Tripulante> recuperacion = new ArrayList<>();
+            
+            for (Tripulante t : tripulantes) {
+                if (t.getEstado().equals("en recuperación")) {
+                    recuperacion.add(t);
+                }
+            }
+            
+            // Ordenar recuperación solo por energía usando comparador manual
+            for (int i = 1; i < recuperacion.size(); i++) {
+                Tripulante clave = recuperacion.get(i);
+                int j = i - 1;
+                
+                while (j >= 0 && recuperacion.get(j).getNivelEnergia() < clave.getNivelEnergia()) {
+                    recuperacion.set(j + 1, recuperacion.get(j));
+                    j--;
+                }
+                recuperacion.set(j + 1, clave);
+            }
+            
+            // Agregar de recuperación hasta completar
+            for (int i = 0; i < recuperacion.size() && contador < maxCantidad; i++) {
+                Tripulante t = recuperacion.get(i);
+                t.setEstado("en misión");
+                formacion.add(t);
+                contador++;
+            }
+        }
+        
+        return formacion;
+    }
+    
+    // Método auxiliar para mostrar todos los tripulantes
+    public void mostrarTripulantes() {
+        for (Tripulante t : tripulantes) {
+            System.out.println(t);
+        }
+    }
+}
+
+// Clase principal para probar
+public class Main {
+    public static void main(String[] args) {
+        SistemaGestion sistema = new SistemaGestion();
+        
+        // Agregar tripulantes
+        sistema.agregarTripulante(new Tripulante(1, 80, 5, "disponible"));
+        sistema.agregarTripulante(new Tripulante(2, 90, 3, "disponible"));
+        sistema.agregarTripulante(new Tripulante(3, 70, 4, "en recuperación"));
+        sistema.agregarTripulante(new Tripulante(4, 95, 2, "disponible"));
+        sistema.agregarTripulante(new Tripulante(5, 85, 5, "en recuperación"));
+        
+        System.out.println("=== Tripulantes iniciales ===");
+        sistema.mostrarTripulantes();
+        
+        System.out.println("\n=== Tripulantes ordenados (procesarTripulante) ===");
+        List<Tripulante> ordenados = sistema.procesarTripulante();
+        for (Tripulante t : ordenados) {
+            System.out.println(t);
+        }
+        
+        System.out.println("\n=== Armar formación (minNivel=3, minEnergia=75, max=2) ===");
+        List<Tripulante> formacion = sistema.armarFormacion(3, 75, 2);
+        for (Tripulante t : formacion) {
+            System.out.println(t);
+        }
+        
+        System.out.println("\n=== Estado final de todos ===");
+        sistema.mostrarTripulantes();
+    }
+}
